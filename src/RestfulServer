@@ -1,0 +1,39 @@
+from wsgiref.simple_server import make_server
+import cgi
+
+
+def notfound_404(environ, start_response):
+    start_response('404 Not Found', [('Content-type', 'text/plain')])
+    return [b'Not Found The Page']
+
+
+def echo(environ, start_response):
+    start_response('200 OK', [('Content-type', 'text/plain')])
+    content = environ['params'].get('content') or '456'
+    return content.encode('utf-8')
+
+
+class PathDispatcher:
+    def __init__(self):
+        self.path_map = {}
+
+    def __call__(self, environ, start_response):
+        path = environ['PATH_INFO']
+        params = cgi.FieldStorage(environ['wsgi.input'],
+                                  environ=environ)
+        environ['params'] = {key: params.getvalue(key) for key in params}
+        method = environ['REQUEST_METHOD'].lower()
+
+        handler = self.path_map.get((method, path), notfound_404)
+        return handler(environ, start_response)
+
+    def register(self, method, path, func):
+        self.path_map[method.lower(), path] = func
+
+
+if __name__ == "__main__":
+    pathDispatcher = PathDispatcher()
+    pathDispatcher.register('get', '/echo', echo)
+    httpd = make_server('', 8080, pathDispatcher)
+    print('Serving on port 8080...')
+    httpd.serve_forever()
