@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 class UserProfile(object):
     __slots__ = ['name', 'age']
 
